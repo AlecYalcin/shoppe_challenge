@@ -35,15 +35,16 @@ export async function upload(req: express.Request, res: express.Response) {
     }
 
     // Erro 409 - Leitura do Mês já Realizada
-    getMonthlyMeasure(measure_datetime, measure_type).then((result) => {
-      console.log(result);
-      if (result) {
-        return res.status(409).json({
-          error_code: "DOUBLE_REPORT",
-          error_description: "Leitura do mês já realizada",
-        });
+    await getMonthlyMeasure(customer_code, measure_datetime, measure_type).then(
+      (result) => {
+        if (result) {
+          return res.status(409).json({
+            error_code: "DOUBLE_REPORT",
+            error_description: "Leitura do mês já realizada",
+          });
+        }
       }
-    });
+    );
 
     // Erro 500 - Erro interno do Sistema
     const API_KEY = process.env.GEMINI_API_KEY;
@@ -57,7 +58,7 @@ export async function upload(req: express.Request, res: express.Response) {
     }
 
     // Transformando o Base64 em uma Imagem Temporária
-    convertBase64toImage(image);
+    await convertBase64toImage(image);
 
     // Processando dados da Imagem através do Google Gemini
     const fileManager = new GoogleAIFileManager(API_KEY);
@@ -107,6 +108,6 @@ export async function upload(req: express.Request, res: express.Response) {
     return res.status(200).json({ data });
   } catch (error) {
     console.log(error);
-    return res.sendStatus(400);
+    return res.status(400);
   }
 }

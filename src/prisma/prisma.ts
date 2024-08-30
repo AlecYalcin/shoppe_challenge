@@ -5,7 +5,11 @@ const prismaClient = new PrismaClient();
 export default prismaClient;
 
 // Encontrar leitura do mês
-export async function getMonthlyMeasure(date: string, type: string) {
+export async function getMonthlyMeasure(
+  code: string,
+  date: string,
+  type: string
+) {
   // Verifica se o tipo passado existe como Enum
   const identify_type = Type[type as keyof typeof Type];
   if (!identify_type) {
@@ -25,6 +29,7 @@ export async function getMonthlyMeasure(date: string, type: string) {
 
   const result = prismaClient.measure.findFirst({
     where: {
+      customer_code: code,
       measure_type: identify_type,
       measure_datetime: {
         gte: firstDay,
