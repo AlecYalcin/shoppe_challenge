@@ -21,7 +21,6 @@ enum Type {
 enum Status {
   PENDING
   CONFIRMED
-  REJECTED
 }
 
 model Measure {
