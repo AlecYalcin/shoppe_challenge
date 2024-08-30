@@ -1,14 +1,15 @@
 import express from "express";
 import prismaClient from "../prisma/prisma";
+import { getMonthlyMeasure } from "../prisma/prisma";
 import dotenv from "dotenv";
 
 import { v4 as uuidv4 } from "uuid";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { GoogleAIFileManager } from "@google/generative-ai/server";
 import {
-  convertImageToBase64,
   convertBase64toImage,
-  isValidBase64,
+  isDateTime,
+  isMeasureType,
   getPath,
 } from "../utils";
 
@@ -24,10 +25,8 @@ export async function upload(req: express.Request, res: express.Response) {
     if (
       !image ||
       !customer_code ||
-      !measure_datetime ||
-      !measure_type ||
-      !isValidBase64(image) ||
-      (measure_type != "WATER" && measure_datetime != "GAS")
+      !isDateTime(measure_datetime) ||
+      !isMeasureType(measure_type)
     ) {
       return res.status(400).json({
         error_code: "INVALID_DATA",
@@ -36,6 +35,15 @@ export async function upload(req: express.Request, res: express.Response) {
     }
 
     // Erro 409 - Leitura do Mês já Realizada
+    getMonthlyMeasure(measure_datetime, measure_type).then((result) => {
+      console.log(result);
+      if (result) {
+        return res.status(409).json({
+          error_code: "DOUBLE_REPORT",
+          error_description: "Leitura do mês já realizada",
+        });
+      }
+    });
 
     // Erro 500 - Erro interno do Sistema
     const API_KEY = process.env.GEMINI_API_KEY;
