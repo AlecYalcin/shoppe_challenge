@@ -2,9 +2,15 @@ import express from "express";
 import prismaClient from "../prisma/prisma";
 import dotenv from "dotenv";
 
+import { v4 as uuidv4 } from "uuid";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { GoogleAIFileManager } from "@google/generative-ai/server";
-import { convertImageToBase64, convertBase64toImage, getPath } from "../utils";
+import {
+  convertImageToBase64,
+  convertBase64toImage,
+  isValidBase64,
+  getPath,
+} from "../utils";
 
 // Configuração do Env
 dotenv.config();
@@ -14,16 +20,26 @@ export async function upload(req: express.Request, res: express.Response) {
     // Coletando informações do usuário
     const { image, customer_code, measure_datetime, measure_type } = req.body;
 
-    // Validação de dados
-    if (!image || !customer_code || !measure_datetime || !measure_type) {
+    // Erro 400 - Dados Inválidos
+    if (
+      !image ||
+      !customer_code ||
+      !measure_datetime ||
+      !measure_type ||
+      !isValidBase64(image) ||
+      (measure_type != "WATER" && measure_datetime != "GAS")
+    ) {
       return res.status(400).json({
         error_code: "INVALID_DATA",
         error_description: "Dados fornecidos são inválidos.",
       });
     }
 
-    // Google Gemini
+    // Erro 409 - Leitura do Mês já Realizada
+
+    // Erro 500 - Erro interno do Sistema
     const API_KEY = process.env.GEMINI_API_KEY;
+
     if (!API_KEY) {
       return res.status(500).json({
         error_code: "SERVER_INTERNAL_ERROR",
@@ -32,29 +48,25 @@ export async function upload(req: express.Request, res: express.Response) {
       });
     }
 
-    convertImageToBase64(
-      "/home/alec/Codigos/Projetos/shoppe_challenge/src/test1.jpeg"
-    ).then((base65) => {
-      if (base65) {
-        const test = Buffer.from(base65, "base64");
-        convertBase64toImage(base65);
-      }
-    });
+    // Transformando o Base64 em uma Imagem Temporária
+    convertBase64toImage(image);
 
+    // Processando dados da Imagem através do Google Gemini
     const fileManager = new GoogleAIFileManager(API_KEY);
-    const uploadResult = await fileManager.uploadFile(getPath("temp.jpg"), {
-      mimeType: "image/jpeg",
-      displayName: "Conta de Água",
-    });
-
-    console.log(
-      `Uploaded file ${uploadResult.file.displayName} as: ${uploadResult.file.uri}`
+    const uploadResult = await fileManager.uploadFile(
+      getPath("temp/temp.jpg"),
+      {
+        mimeType: "image/jpeg",
+        displayName: "Conta de Água",
+      }
     );
 
     const genAI = new GoogleGenerativeAI(API_KEY);
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    // Prompt de Comando
     const result = await model.generateContent([
-      "Que imagem é essa? Você pode ver o quanto que é preciso pagar?",
+      "Retorne o total a pagar dessa conta somente em números",
       {
         fileData: {
           fileUri: uploadResult.file.uri,
@@ -63,11 +75,29 @@ export async function upload(req: express.Request, res: express.Response) {
       },
     ]);
 
-    console.log(result.response.text());
+    const image_url: string = `${uploadResult.file.uri}?key=${API_KEY}`;
+    const measure_value: number = +result.response.text();
+    const measure_uuid: string = uuidv4();
 
-    // Verificação de dados
+    const data = {
+      image_url: image_url,
+      measure_value: measure_value,
+      measure_uuid: measure_uuid,
+    };
 
-    return res.sendStatus(201);
+    // Salvando no Banco de Dados
+    await prismaClient.measure.create({
+      data: {
+        measure_uuid: measure_uuid,
+        customer_code: customer_code,
+        measure_datetime: measure_datetime,
+        measure_type: measure_type,
+        image_url: image_url,
+        measure_value: measure_value,
+      },
+    });
+
+    return res.status(200).json({ data });
   } catch (error) {
     console.log(error);
     return res.sendStatus(400);
