@@ -100,7 +100,6 @@ export async function upload(req: express.Request, res: express.Response) {
         customer_code: customer_code,
         measure_datetime: measure_datetime,
         measure_type: measure_type,
-        image_url: image_url,
         measure_value: measure_value,
       },
     });
