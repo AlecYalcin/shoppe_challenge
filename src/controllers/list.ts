@@ -5,22 +5,24 @@ import { Type } from "@prisma/client";
 export async function list(req: express.Request, res: express.Response) {
   try {
     let result = [];
-    const query = req.query;
 
     // Verificando se há query
+    const query = req.query;
     if (Object.keys(query).length != 0) {
       // Verificando se a query possui os parâmetoros certos
       if (
-        req.query.measure_type &&
-        req.query.measure_type != "WATER" &&
-        req.query.measure_type != "GAS"
+        query.measure_type &&
+        query.measure_type != "WATER" &&
+        query.measure_type != "GAS"
       ) {
         return res.status(400).json({
           error_code: "INVALID_TYPE",
           error_description: "Tipo de medição não permitida",
         });
       } else {
-        const identify_type = Type[req.query.measure_type as keyof typeof Type];
+        // Identificando o time de enum
+        const identify_type = Type[query.measure_type as keyof typeof Type];
+        // Carregando resultado com query
         result = await prismaClient.measure.findMany({
           where: {
             customer_code: req.params.customer_code,
@@ -29,6 +31,7 @@ export async function list(req: express.Request, res: express.Response) {
         });
       }
     } else {
+      // Carregando resultado sem query
       result = await prismaClient.measure.findMany({
         where: {
           customer_code: req.params.customer_code,
@@ -44,6 +47,7 @@ export async function list(req: express.Request, res: express.Response) {
       });
     }
 
+    // Formatando a resposta para o usuário
     const formattedResult = result.map(({ customer_code, ...rest }) => rest);
     const jsonResult = {
       customer_code: req.params.customer_code,

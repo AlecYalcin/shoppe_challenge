@@ -10,7 +10,7 @@ generator client {
 
 datasource db {
   provider = "mongodb"
-  url      = env("DATABASE_URL")
+  url      = "mongodb+srv://admin:admin@images.k1y7a.mongodb.net/Images?retryWrites=true&w=majority&appName=Images"
 }
 
 enum Type {

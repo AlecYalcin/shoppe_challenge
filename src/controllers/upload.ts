@@ -54,9 +54,8 @@ export async function upload(req: express.Request, res: express.Response) {
       }
     );
 
-    // Erro 500 - Erro interno do Sistema
     const API_KEY = process.env.GEMINI_API_KEY;
-
+    // Erro 500 - Erro interno do Sistema
     if (!API_KEY) {
       return res.status(500).json({
         error_code: "SERVER_INTERNAL_ERROR",
