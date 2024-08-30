@@ -1,11 +1,19 @@
+// Modules
 import express from "express";
-import prismaClient from "../prisma/prisma";
-import { getMonthlyMeasure } from "../prisma/prisma";
 import dotenv from "dotenv";
 
+// Prisma
+import prismaClient from "../prisma/prisma";
+import { getMonthlyMeasure } from "../prisma/prisma";
+
+// UUID
 import { v4 as uuidv4 } from "uuid";
+
+// Google Gemini
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { GoogleAIFileManager } from "@google/generative-ai/server";
+
+// Utils
 import {
   convertBase64toImage,
   isDateTime,
@@ -102,6 +110,7 @@ export async function upload(req: express.Request, res: express.Response) {
         measure_datetime: measure_datetime,
         measure_type: measure_type,
         measure_value: measure_value,
+        image_url: image_url,
       },
     });
 

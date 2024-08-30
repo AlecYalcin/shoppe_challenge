@@ -31,6 +31,7 @@ model Measure {
   measure_type     Type
   measure_value    Int
   status           Status   @default(PENDING)
+  image_url        String
 
   @@unique([customer_code, measure_datetime, measure_type], name: "unique_monthly_reading")
 }
